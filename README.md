@@ -69,6 +69,7 @@ After running the script with the example text, you should see output like:
 
 ### Nodes:
 Nodes in the graph:
+```
 <Node element_id='' labels=frozenset({'Person'}) properties={'name': 'Joe Biden'}>
 <Node element_id='' labels=frozenset({'Person'}) properties={'name': 'Donald Trump'}>
 <Node element_id='' labels=frozenset({'Party'}) properties={'name': 'Democratic Party'}>
@@ -80,7 +81,7 @@ Joe Biden -[:MEMBER_OF]-> Democratic Party
 Joe Biden -[:ASSOCIATED_WITH]-> United States
 Donald Trump -[:MEMBER_OF]-> Republican Party
 Donald Trump -[:ASSOCIATED_WITH]-> United States
-
+```
 
 ## Troubleshooting
 
@@ -89,7 +90,6 @@ Donald Trump -[:ASSOCIATED_WITH]-> United States
 
 2. **Neo4j connection errors**:
    - Verify that Neo4j is running and accessible at `bolt://localhost:7687`. Check that your credentials are correct.
-
 
 ## License
 
