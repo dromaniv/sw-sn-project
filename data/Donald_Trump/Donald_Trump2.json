@@ -1,0 +1,82 @@
+{
+  "entities": [
+    {
+      "name": "Donald Trump",
+      "type": "Person"
+    },
+    {
+      "name": "Fred Trump",
+      "type": "Person"
+    },
+    {
+      "name": "Mary Anne MacLeod Trump",
+      "type": "Person"
+    },
+    {
+      "name": "Maryanne Trump",
+      "type": "Person"
+    },
+    {
+      "name": "Fred Trump Jr.",
+      "type": "Person"
+    },
+    {
+      "name": "Elizabeth Trump",
+      "type": "Person"
+    },
+    {
+      "name": "Robert Trump",
+      "type": "Person"
+    },
+    {
+      "name": "Jamaica Hospital",
+      "type": "Institution"
+    },
+    {
+      "name": "Queens",
+      "type": "Country"
+    },
+    {
+      "name": "New York City",
+      "type": "Country"
+    },
+    {
+      "name": "Kew-Forest School",
+      "type": "Institution"
+    },
+    {
+      "name": "New York Military Academy",
+      "type": "Institution"
+    },
+    {
+      "name": "Fordham University",
+      "type": "Institution"
+    },
+    {
+      "name": "Wharton School of the University of Pennsylvania",
+      "type": "Institution"
+    }
+  ],
+  "relationships": [
+    {
+      "type": "ASSOCIATED_WITH",
+      "from": "Donald Trump",
+      "to": "Queens"
+    },
+    {
+      "type": "ASSOCIATED_WITH",
+      "from": "Donald Trump",
+      "to": "New York City"
+    },
+    {
+      "type": "ASSOCIATED_WITH",
+      "from": "Jamaica Hospital",
+      "to": "Queens"
+    },
+    {
+      "type": "ASSOCIATED_WITH",
+      "from": "Jamaica Hospital",
+      "to": "New York City"
+    }
+  ]
+}

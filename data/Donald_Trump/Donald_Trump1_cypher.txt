@@ -1,0 +1,5 @@
+MERGE (n:Person {name: 'Donald John Trump'});
+MERGE (n:Party {name: 'Republican Party'});
+MERGE (n:Country {name: 'United States'});
+MATCH (a:Person {name: 'Donald John Trump'}), (b:Party {name: 'Republican Party'}) MERGE (a)-[:MEMBER_OF]->(b);
+MATCH (a:Person {name: 'Donald John Trump'}), (b:Party {name: 'United States'}) MERGE (a)-[:ASSOCIATED_WITH]->(b);

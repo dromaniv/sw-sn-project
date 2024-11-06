@@ -1,0 +1,18 @@
+MERGE (n:Person {name: 'Donald Trump'});
+MERGE (n:Person {name: 'Fred Trump'});
+MERGE (n:Person {name: 'Mary Anne MacLeod Trump'});
+MERGE (n:Person {name: 'Maryanne Trump'});
+MERGE (n:Person {name: 'Fred Trump Jr.'});
+MERGE (n:Person {name: 'Elizabeth Trump'});
+MERGE (n:Person {name: 'Robert Trump'});
+MERGE (n:Institution {name: 'Jamaica Hospital'});
+MERGE (n:Country {name: 'Queens'});
+MERGE (n:Country {name: 'New York City'});
+MERGE (n:Institution {name: 'Kew-Forest School'});
+MERGE (n:Institution {name: 'New York Military Academy'});
+MERGE (n:Institution {name: 'Fordham University'});
+MERGE (n:Institution {name: 'Wharton School of the University of Pennsylvania'});
+MATCH (a:Person {name: 'Donald Trump'}), (b:Party {name: 'Queens'}) MERGE (a)-[:ASSOCIATED_WITH]->(b);
+MATCH (a:Person {name: 'Donald Trump'}), (b:Party {name: 'New York City'}) MERGE (a)-[:ASSOCIATED_WITH]->(b);
+MATCH (a:Person {name: 'Jamaica Hospital'}), (b:Party {name: 'Queens'}) MERGE (a)-[:ASSOCIATED_WITH]->(b);
+MATCH (a:Person {name: 'Jamaica Hospital'}), (b:Party {name: 'New York City'}) MERGE (a)-[:ASSOCIATED_WITH]->(b);
