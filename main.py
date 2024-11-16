@@ -1,7 +1,7 @@
 import os
 import re
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 from dataclasses import dataclass
 from enum import Enum
 import wikipedia
@@ -53,12 +53,6 @@ class Relationship:
     target: str
     type: RelationType
     properties: Dict[str, Any]
-
-
-@dataclass
-class ArticleData:
-    title: str
-    data: Dict[str, Any]
 
 
 def try_repair_json(text: str) -> str:
@@ -164,21 +158,6 @@ class WikiKnowledgeGraph:
     }
     """
 
-    CLEANING_PROMPT_TEMPLATE = """
-    You are an assistant that cleans and deduplicates a knowledge graph JSON. Please perform the following tasks:
-    1. Identify and merge duplicate entities based on their names and aliases.
-    2. Ensure all relationships correctly reference the unified entities.
-    3. Fill in any missing connections due to name variations or aliases.
-    4. Maintain consistency in entity properties.
-
-    Here is the aggregated JSON data:
-    ```json
-    {aggregated_json}
-    ```
-
-    Provide the cleaned JSON in the same format.
-    """
-
     def __init__(self):
         self.neo4j_url = os.getenv("NEO4J_CONNECTION_URL")
         self.neo4j_user = os.getenv("NEO4J_USER")
@@ -188,7 +167,6 @@ class WikiKnowledgeGraph:
         self.driver = GraphDatabase.driver(
             self.neo4j_url, auth=(self.neo4j_user, self.neo4j_password)
         )
-        self.articles_data: List[ArticleData] = []
 
     def __enter__(self):
         return self
@@ -230,99 +208,10 @@ class WikiKnowledgeGraph:
             logger.error(f"💥 Error in OpenAI extraction: {e}")
             raise
 
-    def process_article(self, title: str) -> None:
-        try:
-            logger.info(f"🎯 Processing article: {title}")
-            content = self.fetch_wikipedia_content(title)
-            logger.info(f"📑 Analyzing content for {title}")
-
-            # First attempt
-            try:
-                data = self.extract_structured_data(content)
-            except JSONDecodeError:
-                logger.warning("⚠️ First attempt failed, retrying extraction...")
-                # Second attempt
-                data = self.extract_structured_data(content)
-
-            logger.info(f"🗂️ Storing data for {title}")
-            self.articles_data.append(ArticleData(title=title, data=data))
-            logger.info(f"🎉 Successfully processed {title}")
-        except Exception as e:
-            logger.error(f"💀 Failed processing {title}: {e}")
-            raise
-
-    def aggregate_json(self) -> str:
-        logger.info("📦 Aggregating all articles' JSON data")
-        aggregated_data = {"entities": [], "relationships": []}
-        entity_names = set()
-
-        for article in self.articles_data:
-            # Aggregate entities
-            for entity in article.data.get("entities", []):
-                if entity["name"] not in entity_names:
-                    aggregated_data["entities"].append(entity)
-                    entity_names.add(entity["name"])
-                else:
-                    # Handle duplicate entity names, possibly by merging aliases and properties
-                    existing_entity = next(
-                        (
-                            e
-                            for e in aggregated_data["entities"]
-                            if e["name"] == entity["name"]
-                        ),
-                        None,
-                    )
-                    if existing_entity:
-                        existing_entity["properties"]["aliases"] = list(
-                            set(
-                                existing_entity["properties"].get("aliases", [])
-                                + entity["properties"].get("aliases", [])
-                            )
-                        )
-                        existing_entity["properties"]["description"] = existing_entity[
-                            "properties"
-                        ].get("description", "") or entity["properties"].get(
-                            "description", ""
-                        )
-                        # Merge other properties as needed
-
-            # Aggregate relationships
-            aggregated_data["relationships"].extend(
-                article.data.get("relationships", [])
-            )
-
-        aggregated_json = json.dumps(aggregated_data, indent=2)
-        logger.debug(f"Aggregated JSON: {aggregated_json}")
-        return aggregated_json
-
-    def clean_aggregated_json(self, aggregated_json: str) -> Dict[str, Any]:
-        logger.info("🧹 Sending aggregated JSON to LLM for cleaning")
-        try:
-            prompt = self.CLEANING_PROMPT_TEMPLATE.format(
-                aggregated_json=aggregated_json
-            )
-            response = self.client.chat.completions.create(
-                model="gpt-4-turbo",
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": ""},
-                ],
-                temperature=0.1,
-                max_tokens=2000,
-            )
-            logger.info("🧼 Received cleaned JSON from LLM")
-            cleaned_data = parse_json_response(response.choices[0].message.content)
-            logger.info("🧼 Successfully cleaned the aggregated JSON")
-            return cleaned_data
-        except Exception as e:
-            logger.error(f"💥 Error in LLM cleaning: {e}")
-            raise
-
-    def create_graph_from_cleaned_data(self, cleaned_data: Dict[str, Any]) -> None:
-        logger.info("🗄️ Starting graph creation from cleaned data")
+    def create_graph(self, data: Dict[str, Any]) -> None:
+        logger.info("🗄️ Starting graph creation")
         with self.driver.session() as session:
-            # Create entities
-            for entity in cleaned_data["entities"]:
+            for entity in data["entities"]:
                 logger.debug(f"📋 Creating entity: {entity['name']}")
                 cypher = """
                 MERGE (e:{label} {{name: $name}})
@@ -339,14 +228,13 @@ class WikiKnowledgeGraph:
                     },
                 )
 
-            # Create relationships
-            for rel in cleaned_data["relationships"]:
+            for rel in data["relationships"]:
                 logger.debug(
                     f"🔗 Creating relationship: {rel['source']} -> {rel['target']}"
                 )
                 cypher = """
-                MATCH (source {name: $source_name})
-                MATCH (target {name: $target_name})
+                MATCH (source) WHERE source.name = $source_name
+                MATCH (target) WHERE target.name = $target_name
                 MERGE (source)-[r:{rel_type}]->(target)
                 SET r += $properties
                 """.format(
@@ -361,7 +249,28 @@ class WikiKnowledgeGraph:
                         "properties": rel["properties"],
                     },
                 )
-        logger.info("✅ Graph creation from cleaned data completed")
+        logger.info("✅ Graph creation completed")
+
+    def process_article(self, title: str) -> None:
+        try:
+            logger.info(f"🎯 Processing article: {title}")
+            content = self.fetch_wikipedia_content(title)
+            logger.info(f"📑 Analyzing content for {title}")
+
+            # First attempt
+            try:
+                data = self.extract_structured_data(content)
+            except JSONDecodeError:
+                logger.warning("⚠️ First attempt failed, retrying extraction...")
+                # Second attempt
+                data = self.extract_structured_data(content)
+
+            logger.info(f"💾 Saving data for {title}")
+            self.create_graph(data)
+            logger.info(f"🎉 Successfully processed {title}")
+        except Exception as e:
+            logger.error(f"💀 Failed processing {title}: {e}")
+            raise
 
 
 def main():
@@ -381,15 +290,6 @@ def main():
     with WikiKnowledgeGraph() as graph:
         for title in titles:
             graph.process_article(title)
-
-        logger.info("📦 Aggregating all collected JSON data")
-        aggregated_json = graph.aggregate_json()
-
-        logger.info("🧹 Cleaning and deduplicating the aggregated JSON")
-        cleaned_data = graph.clean_aggregated_json(aggregated_json)
-
-        logger.info("🗄️ Loading cleaned data into Neo4j")
-        graph.create_graph_from_cleaned_data(cleaned_data)
 
     logger.info("✨ Knowledge graph creation completed")
 
