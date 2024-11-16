@@ -98,7 +98,6 @@ The project aims to simplify the creation of a knowledge graph with minimal setu
 
 After running the script with the example titles, you should see nodes and relationships similar to the following:
 
-### Nodes:
 ```mermaid
 graph TD
     %% Define styles for different entity types
