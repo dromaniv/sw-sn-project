@@ -212,7 +212,7 @@ class WikiKnowledgeGraph:
         logger.info("🤖 Starting OpenAI extraction")
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=os.getenv("OPENAI_API_VERSION"),
                 messages=[
                     {"role": "system", "content": self.EXTRACTION_PROMPT},
                     {"role": "user", "content": content},
@@ -302,7 +302,7 @@ class WikiKnowledgeGraph:
                 aggregated_json=aggregated_json
             )
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=os.getenv("OPENAI_API_VERSION"),
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": ""},
